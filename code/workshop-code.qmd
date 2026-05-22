@@ -11,6 +11,7 @@ execute:
   warning: false # use this to make sure warnings don't show upl
 ---
 
+
 In this workshop, we will answer the question: How do specific leaf area, water treatment, and species influence plant mass?  
 
 **Specific leaf area** is a continuous variable measured in cm^2^/g.  
@@ -45,6 +46,9 @@ library(MuMIn) # model selection
 
 # read in your data here
 
+drought_exp <- read_xlsx(here("data", "Valliere_etal_EcoApps_Data.xlsx"),
+                         sheet = "First Harvest",
+                         )
 
 
 ```
