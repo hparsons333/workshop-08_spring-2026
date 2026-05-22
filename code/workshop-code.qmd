@@ -65,6 +65,16 @@ stipul_col <- "#3F564F"
 esccal_col <- "#515481"
 gricam_col <- "#6C91BD"
 
+plant_colors <- c(
+  "Lotus scoparius" = lotsco_col,
+  "Eschzcholzia californica" = esccal_col,
+  "Grindelia camporum" = gricam_col,
+  "Stipa pulchra" = stipul_col,
+  "Penstemon centranthifoluis" = pencen_col,
+  "Salvia leucophylla" = salleu_col,
+  "Encelia californica" = enccal_col
+)
+
 # storing colors to use for water treatments
 ds_col <- "#A62F03"
 ww_col <- "#045CB4"
@@ -139,8 +149,6 @@ slice_sample(drought_exp_clean, # data frame to display
 ```
 
 
-
-
 # 3. Visualizing data
 
 ## What is the relationship between SLA and plant mass?  
@@ -151,8 +159,24 @@ Label the axes with units where appropriate.
 
 Add a title describing the relationship (e.g. as SLA increases, total mass ______). 
 
-
-
+```{r}
+# creating new object
+drought_exp_scatter <- 
+  # base layer: ggplot
+  ggplot(data = drought_exp_clean,
+         # x-axis: specific leaf area
+         # y-axis: total plant mass
+                           mapping = aes(x = sla,
+                                         y = total_g)) +
+  # geometry for scatterplot
+  geom_point() +
+  # relabelling x- and y-axes and title
+  labs(title = "As SLA increases, total mass increases",
+       x = "Specific leaf area (cm\U00B2 /g)",
+       y = "Total mass (g)")
+# displaying plot
+drought_exp_scatter
+```
 
 
 ## What are the differences in total mass between water treatments?
@@ -163,28 +187,72 @@ Label the axes with units where appropriate.
 
 Add a title describing the differences in (mean or median) plant mass between water treatments.
 
-
-
-
-
+```{r}
+# creating new object
+drought_exp_jitter <- 
+  # base layer: ggplot
+  ggplot(data = drought_exp_clean,
+         # x-axis: water treatment
+         # y-axis: total plant mass
+         # color geometries by treatment
+                             mapping = aes(x = water_treatment,
+                                           y = total_g,
+                                           color = water_treatment)) +
+  # jitter to represent individual plants
+  geom_jitter(width = 0.1,
+              height = 0) +
+  # setting custom colors
+  scale_color_manual(
+    values = c("Drought stressed" = ds_col,
+               "Well watered" = ww_col)) +
+  # relabelling axes, adding title
+  labs(title = "Mean plant mass is greater in well watered\ntreatment in comparison to drought stressed treatment",
+       x = "Treatment",
+       y = "Total mass (g)") +
+  # taking out the legend
+  theme(legend.position = "false")
+# displaying plot
+drought_exp_jitter 
+```
 
 
 ## What are the differences in total mass between species?
 
 Make a jitterplot to visualize the differences in plant mass between species.  
-
 Label the axes with units where appropriate.  
 
 Add a title describing the differences in (mean or median) plant mass between species.  
 
 Bonus: order the x-axis by decreasing mean plant mass.
 
-
-
-
-
-
-
+```{r}
+# new object
+drought_exp_jitter2 <- 
+  # base layer: ggplot
+  ggplot(data = drought_exp_clean,
+         # x-axis: species name
+         # y-axis: total plant mass
+         # color geometries by species name
+                              mapping = aes(x = species_name,
+                                            y = total_g,
+                                            color = species_name)) +
+  # jitter to represent plant individuals
+  geom_jitter(width = 0.1,
+              height = 0) +
+  # using custom colors
+  scale_color_manual(values = plant_colors) +
+  # wrapping x-axis text
+  scale_x_discrete(labels = label_wrap(10)) +
+  # relabelling axes, adding title
+  labs(title = "Species differ in total plant mass",
+       x = "Species name",
+       y = "Total plant mass (g)"
+       ) +
+  # taking out legend
+  theme(legend.position = "false")
+# displaying object
+drought_exp_jitter2
+```
 
 # 4. Fitting models
 
@@ -208,35 +276,69 @@ Bonus: order the x-axis by decreasing mean plant mass.
 
 # model 0: null model
 
+model0 <- lm(
+  total_g ~ 1,# formula: no predictors
+  data = drought_exp_clean # clean data frame
+)
 
 # model 1: all predictors
 
+model1 <- lm(
+  total_g ~ sla + water_treatment + species_name, # formula: all predictors
+  data = drought_exp_clean # clean data frame
+)
 
 # model 2: SLA and water treatment
-
+model2 <- lm(
+  total_g ~ sla + water_treatment, # formula: only SLA and treatment
+  data = drought_exp_clean # clean data frame
+)
 
 # model 3: SLA and species
-
+model3 <- lm(
+  total_g ~ sla + species_name, # formula: only SLA and species
+  data = drought_exp_clean # clean data frame
+)
 
 # model 4: water treatment and species
-
+model4 <- lm(
+  total_g ~ water_treatment + species_name, # formula: only treatment and species
+  data = drought_exp_clean # clean data frame
+)
 
 # model 5: SLA
-
+model5 <- lm(
+  total_g ~ sla, # formula: only SLA
+  data = drought_exp_clean # clean data frame
+)
 
 # model 6: water treatment
-
+model6 <- lm(
+  total_g ~ water_treatment, # formula: only water treatment
+  data = drought_exp_clean # clean data frame
+)
 
 # model 7: species
-
+model7 <- lm(
+  total_g ~ species_name, # formula: only species
+  data = drought_exp_clean # clean data frame
+)
 ```
 
 ## Model diagnostics
 
+```{r}
+#| label: check_diagnostics
 
+# displaying plots in 2x2 grid
+par(mfrow = c(2,2))
+# generating diagnostic plots
+plot(model4)
+```
 
-
-
+- residuals appear normally distribute
+- residuals appear homoscedastic (have constant variance)
+- no clear outliers in data set influencing model coefficient estimates
 
 ## Model selection
 
@@ -244,28 +346,53 @@ Insert code to use the `AICc()` function to calculate the AIC for each model.
 
 Arrange by decreasing AIC.
 
+```{r}
+#| label: calculating_aic
+
+AICc(
+  model0, 
+  model1, 
+  model2, 
+  model3, 
+  model4, 
+  model5, 
+  model6, 
+  model7
+) |>
+  # 
+  arrange(AICc)
+```
 
 
 
 Insert code to display the summary for the best model. 
 
+```{r}
+#| label: model-summary
 
+summary(model4)
+```
 
+- `(Intercept)`: model prediction for plant mass for Lotus scoparius in the drought stressed treatment.
+- `water_treatmentWell watered`: model prediction for the difference in Lotus scoparius mass between the well watered and drought stressed treatment 
+- `species_namePenstemon centranthifolius`: model prediction for the difference between Penstemon mass in the well watered treatment and Lotus mass in the well watered treatment.
+- `species_nameEschscholzia californica`: model prediction for the difference between Eschscholzia mass in the well watered treatment and Lotus mass in the well watered treatment.
 
 
 ## Stop and think: what does this model mean?  
 
 **What is the best model?**
 
-[insert your response here]
+The best model includes water treament and species as predictors.
 
 **How much variation in the response (total mass, in grams) does this model explain?**
 
-[insert your response here]
+72.6% of the variation in plant mass is explained by a model with bot of these predictors.
 
 **How do we interpret the effects of the predictors on the response variable (again, total mass in grams)?**
 
-[insert your response here]
+- Treatment influences plant mass.
+- Species influences plant mass.
 
 # 4. Model predictions
 
@@ -275,11 +402,41 @@ Rename the `x` column and `group` column to match the original data frame (`drou
 
 Look at the object before plotting.
 
+```{r}
+#| label: model-predictions
+
+preds <- ggpredict(
+  model4,
+  terms = c("water_treatment", "species_name") 
+) |>
+  # renaming columns
+  rename(water_treatment = x,
+         species_name = group)
+```
 
 
 # 5. Final figure
 
 Create a clean, publication ready figure depicting predictions for the best model and the underlying data.
+
+```{r}
+#| label: final-figure
+
+ggplot(data = drought_exp_clean,
+       mapping = aes(x = water_treatment,
+                     y = total_g,
+                     color = water_treatment)) +
+    geom_jitter(height = 0,
+              width = 0.1,
+              shape = 21,
+              alpha = 0.8) +
+  geom_pointrange(data = preds,
+                  mapping = aes(x = water_treatment,
+                                y = predicted,
+                                ymin = conf.low,
+                                ymax = conf.high)) +
+  facet_wrap(~ species_name)
+```
 
 
 # 6. Writing
